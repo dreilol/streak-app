@@ -5,9 +5,27 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase-browser";
 import type { Profile } from "@/lib/types";
 
+type Theme = "light" | "dark";
+
 export default function Nav() {
   const [me, setMe] = useState<Profile | null>(null);
+  const [theme, setTheme] = useState<Theme>("light");
   const pathname = usePathname();
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("streak-app-theme");
+    const preferred = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    const initial: Theme = saved === "dark" || saved === "light" ? saved : preferred;
+    setTheme(initial);
+    document.documentElement.dataset.theme = initial;
+  }, []);
+
+  function toggleTheme() {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    window.localStorage.setItem("streak-app-theme", next);
+  }
 
   useEffect(() => {
     let active = true;
@@ -15,8 +33,6 @@ export default function Nav() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!active) return;
       if (!user) {
-        // Stale or expired session: send the person back to sign in.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload is intentional
         if (!window.location.pathname.startsWith("/login")) window.location.assign("/login");
         return;
       }
@@ -28,23 +44,42 @@ export default function Nav() {
 
   async function signOut() {
     await supabase.auth.signOut();
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload is intentional
     window.location.assign("/login");
   }
 
+  const links = [
+    { href: "/", label: "Leaderboard", icon: "🏆" },
+    { href: "/streak", label: "My Streak", icon: "🔥" },
+    { href: "/students", label: "Students", icon: "👥" },
+    ...(me?.role === "admin" ? [{ href: "/admin", label: "Admin", icon: "⚙️" }] : []),
+  ];
+
   return (
-    <nav className="flex gap-4 items-center justify-between p-4 bg-white shadow mb-6">
-      <div className="flex gap-4">
-        <Link href="/" className="font-bold">🏆 Leaderboard</Link>
-        <Link href="/streak">🔥 My Streak</Link>
-        <Link href="/students">🔍 Students</Link>
-        {me?.role === "admin" && <Link href="/admin">⚙️ Admin</Link>}
+    <header className="app-nav">
+      <div className="nav-inner">
+        <Link href="/" className="brand" aria-label="Streak App home">
+          <span className="brand-mark">✦</span>
+          <span className="brand-label">streak<span style={{ color: "var(--accent)" }}>.</span></span>
+        </Link>
+        <nav className="nav-links" aria-label="Main navigation">
+          {links.map(link => (
+            <Link key={link.href} href={link.href}
+              className={`nav-link${pathname === link.href ? " active" : ""}`}
+              aria-current={pathname === link.href ? "page" : undefined}>
+              <span aria-hidden="true">{link.icon}</span><span>{link.label}</span>
+            </Link>
+          ))}
+        </nav>
+        <div className="nav-actions">
+          <button type="button" className="icon-button" onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}>
+            <span aria-hidden="true">{theme === "dark" ? "☀️" : "🌙"}</span>
+          </button>
+          {me && <span className="user-chip" title={me.name}>Hi, {me.name}</span>}
+          {me && <button type="button" onClick={signOut} className="nav-signout">Sign out</button>}
+        </div>
       </div>
-      {me && (
-        <button onClick={signOut} className="text-sm text-blue-600 underline">
-          Sign out ({me.name})
-        </button>
-      )}
-    </nav>
+    </header>
   );
 }
