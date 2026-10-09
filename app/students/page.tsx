@@ -12,10 +12,7 @@ export default function Students() {
 
   useEffect(() => {
     let active = true;
-    // Debounce typing, and ignore responses that arrive out of order.
     const timer = setTimeout(async () => {
-      // Strip characters that have special meaning in a PostgREST filter
-      // (commas, parentheses) and in LIKE patterns (%, _, *).
       const term = q.replace(/[,()*%_\\]/g, " ").trim();
       let query = supabase
         .from("profiles")
@@ -32,23 +29,47 @@ export default function Students() {
   }, [q]);
 
   return (
-    <main className="p-6 max-w-2xl mx-auto space-y-4">
-      <h1 className="text-3xl font-bold">🔍 Students</h1>
-      <input className="w-full border rounded p-2" placeholder="Search name or RFID tag"
-        value={q} onChange={e => setQ(e.target.value)} />
-      {error && <p className="text-red-600 text-sm">Could not search: {error}</p>}
-      <ul className="space-y-2">
+    <main className="page-container narrow">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">The community</p>
+          <h1 className="page-title">Students <span aria-hidden="true">👥</span></h1>
+          <p className="page-subtitle">Find a student and see the streak they're building.</p>
+        </div>
+        <span className="badge badge-neutral">{rows.length} shown</span>
+      </div>
+
+      <section className="panel panel-padding" style={{ marginBottom: 18 }}>
+        <label htmlFor="student-search" className="field-label">Search students</label>
+        <input id="student-search" className="field" placeholder="Search by name or RFID tag…" value={q}
+          onChange={e => setQ(e.target.value)} />
+        <p className="panel-description">Search updates as you type.</p>
+      </section>
+
+      {error && <div className="status-banner error" role="alert" style={{ marginBottom: 16 }}>Could not search: {error}</div>}
+      <ul className="list-stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
         {rows.map(r => {
           const streak = effectiveStreak(r);
           const lvl = levelFor(streak);
           return (
-            <li key={r.id} className="bg-white p-4 rounded-2xl shadow flex justify-between">
-              <span>{r.name} <span className="text-gray-400 text-sm">#{r.rfid_tag ?? "no tag"}</span></span>
-              <span>{lvl.icon} {streak}d</span>
+            <li key={r.id} className="list-row">
+              <div className="row-main">
+                <span className="avatar" aria-hidden="true">{r.name.trim().charAt(0).toUpperCase() || "?"}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div className="row-name">{r.name}</div>
+                  <div className="row-meta">RFID · {r.rfid_tag ?? "No tag linked"} · {lvl.icon} {lvl.name}</div>
+                </div>
+              </div>
+              <div className="row-value">
+                <div>{streak} {streak === 1 ? "day" : "days"} 🔥</div>
+                <div className="row-meta">Best: {r.longest_streak}d</div>
+              </div>
             </li>
           );
         })}
-        {rows.length === 0 && !error && <li className="text-center text-gray-400">No students found.</li>}
+        {rows.length === 0 && !error && (
+          <li className="panel empty-state">{q ? "No students match that search. Try another name or tag." : "No students found yet."}</li>
+        )}
       </ul>
     </main>
   );
