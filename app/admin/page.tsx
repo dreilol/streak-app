@@ -34,14 +34,10 @@ export default function Admin() {
 
   async function linkTag(p: Profile, raw: string) {
     const tag = raw.trim();
-    if (tag === (p.rfid_tag ?? "")) return; // nothing changed
-    const { error } = await supabase
-      .from("profiles").update({ rfid_tag: tag || null }).eq("id", p.id);
+    if (tag === (p.rfid_tag ?? "")) return;
+    const { error } = await supabase.from("profiles").update({ rfid_tag: tag || null }).eq("id", p.id);
     if (error) {
-      setMsg({
-        text: error.code === "23505" ? "That tag is already linked to another student." : error.message,
-        error: true,
-      });
+      setMsg({ text: error.code === "23505" ? "That tag is already linked to another student." : error.message, error: true });
     } else {
       setMsg({ text: tag ? `Linked tag to ${p.name}` : `Unlinked tag from ${p.name}` });
     }
@@ -50,9 +46,7 @@ export default function Admin() {
 
   async function simulate(p: Profile) {
     if (!p.rfid_tag) return setMsg({ text: "No tag linked.", error: true });
-    const { data, error } = await supabase.functions.invoke("simulate-tap", {
-      body: { rfid_tag: p.rfid_tag },
-    });
+    const { data, error } = await supabase.functions.invoke("simulate-tap", { body: { rfid_tag: p.rfid_tag } });
     if (error) {
       let text = error.message;
       if (error instanceof FunctionsHttpError) {
@@ -60,41 +54,64 @@ export default function Admin() {
       }
       setMsg({ text, error: true });
     } else {
-      setMsg({
-        text: data?.already_logged
-          ? `${p.name} already tapped in today (streak ${data.streak}).`
-          : `Simulated tap for ${p.name} (streak ${data?.streak ?? "?"}).`,
-      });
+      setMsg({ text: data?.already_logged
+        ? `${p.name} already tapped in today (streak ${data.streak}).`
+        : `Simulated tap for ${p.name} (streak ${data?.streak ?? "?"}).` });
     }
     reload();
   }
 
-  if (loading) return <main className="p-6 text-center">Loading…</main>;
-  if (me?.role !== "admin") return <main className="p-6 text-center">Admins only.</main>;
+  if (loading) return <main className="page-container loading-state">Loading admin tools…</main>;
+  if (me?.role !== "admin") return (
+    <main className="page-container narrow">
+      <div className="status-banner error" role="alert">Admins only. This account doesn't have administrator access.</div>
+    </main>
+  );
 
   return (
-    <main className="p-6 max-w-3xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold">⚙️ Admin</h1>
-      <p className="text-sm text-gray-500">
-        Create students in Supabase → Authentication → Users. They appear here automatically.
-      </p>
-      {msg && <p className={`text-sm ${msg.error ? "text-red-600" : "text-blue-700"}`}>{msg.text}</p>}
-      <div className="bg-white rounded-2xl shadow divide-y">
+    <main className="page-container">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Manage the experience</p>
+          <h1 className="page-title">Admin tools <span aria-hidden="true">⚙️</span></h1>
+          <p className="page-subtitle">Manage RFID tags and test check-ins without changing student records manually.</p>
+        </div>
+        <span className="badge badge-neutral">{rows.length} profiles</span>
+      </div>
+
+      <div className="status-banner" style={{ marginBottom: 22, background: "var(--surface-soft)", color: "var(--muted)" }}>
+        <span aria-hidden="true">ⓘ</span>
+        <span>Create student accounts in Supabase → Authentication → Users. Their profiles appear here automatically.</span>
+      </div>
+      {msg && <div className={`status-banner ${msg.error ? "error" : "success"}`} role={msg.error ? "alert" : "status"} style={{ marginBottom: 18 }}>{msg.text}</div>}
+
+      <section className="panel">
+        <div className="panel-padding" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <h2 className="panel-title">RFID assignments</h2>
+            <p className="panel-description">Edit a tag and move focus away to save it.</p>
+          </div>
+        </div>
+        <hr className="divider" />
         {rows.map(r => (
-          <div key={r.id} className="p-4 flex items-center gap-3">
-            <div className="flex-1">
-              <div className="font-medium">{r.name} <span className="text-xs text-gray-400">({r.role})</span></div>
-              <input
-                key={`${r.id}:${r.rfid_tag ?? ""}`}
-                className="border rounded p-1 text-sm mt-1" placeholder="RFID tag"
-                defaultValue={r.rfid_tag ?? ""}
-                onBlur={e => linkTag(r, e.target.value)} />
+          <div key={r.id} className="list-row" style={{ margin: 12, alignItems: "center" }}>
+            <div className="row-main" style={{ flex: 1 }}>
+              <div className="avatar" aria-hidden="true">{r.name.trim().charAt(0).toUpperCase() || "?"}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="row-name">{r.name}</div>
+                <div className="row-meta">{r.role === "admin" ? "Administrator" : "Student"} · {r.rfid_tag ? `Tag: ${r.rfid_tag}` : "No tag linked"}</div>
+                <label className="field-label" htmlFor={`rfid-${r.id}`} style={{ marginTop: 12 }}>RFID tag</label>
+                <input key={`${r.id}:${r.rfid_tag ?? ""}`} id={`rfid-${r.id}`} className="field" style={{ maxWidth: 360 }}
+                  placeholder="Enter RFID tag" defaultValue={r.rfid_tag ?? ""} onBlur={e => linkTag(r, e.target.value)} />
+              </div>
             </div>
-            <button onClick={() => simulate(r)}
-              className="bg-green-600 text-white rounded px-3 py-1 text-sm">Simulate tap</button>
+            <button type="button" onClick={() => simulate(r)} disabled={!r.rfid_tag} className="button button-success">
+              Simulate tap
+            </button>
           </div>
         ))}
-      </div>
+        {rows.length === 0 && <div className="empty-state">No profiles found.</div>}
+      </section>
     </main>
   );
 }
