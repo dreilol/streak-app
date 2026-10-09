@@ -13,6 +13,7 @@ export default function Login() {
     setBusy(true); setErr(null);
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) { setBusy(false); return setErr(error.message); }
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload refreshes auth state in the nav
     window.location.assign("/");
   }
 
