@@ -33,7 +33,10 @@ export default function Nav() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!active) return;
       if (!user) {
-        if (!window.location.pathname.startsWith("/login")) window.location.assign("/login");
+        if (!window.location.pathname.startsWith("/login")) {
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- preserve full-page auth redirect
+          window.location.assign("/login");
+        }
         return;
       }
       const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
@@ -44,6 +47,7 @@ export default function Nav() {
 
   async function signOut() {
     await supabase.auth.signOut();
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload clears authenticated UI
     window.location.assign("/login");
   }
 
