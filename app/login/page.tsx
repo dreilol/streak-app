@@ -13,23 +13,32 @@ export default function Login() {
     setBusy(true); setErr(null);
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) { setBusy(false); return setErr(error.message); }
-    // Full page load on purpose so the nav bar picks up the new session.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload is intentional
     window.location.assign("/");
   }
 
   return (
-    <main className="max-w-sm mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Sign in</h1>
-      <form onSubmit={submit} className="space-y-3 bg-white p-6 rounded-2xl shadow">
-        <input className="w-full border rounded p-2" type="email" required autoComplete="email"
-          placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input className="w-full border rounded p-2" type="password" required autoComplete="current-password"
-          placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-        {err && <p className="text-red-600 text-sm">{err}</p>}
-        <button disabled={busy} className="w-full bg-blue-600 text-white rounded p-2 disabled:opacity-50">
-          {busy ? "Signing in…" : "Sign in"}
+    <main className="login-wrap">
+      <div className="login-brand">
+        <span className="brand-mark" style={{ width: 52, height: 52, borderRadius: 17, fontSize: 22 }}>✦</span>
+        <h1 className="page-title" style={{ fontSize: 30, marginTop: 18 }}>Welcome back</h1>
+        <p className="page-subtitle">Sign in and keep your momentum going.</p>
+      </div>
+      <form onSubmit={submit} className="panel login-card">
+        <div className="field-group">
+          <label className="field-label" htmlFor="email">Email address</label>
+          <input id="email" className="field" type="email" required autoComplete="email"
+            placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+        </div>
+        <div className="field-group">
+          <label className="field-label" htmlFor="password">Password</label>
+          <input id="password" className="field" type="password" required autoComplete="current-password"
+            placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} />
+        </div>
+        {err && <div className="status-banner error" role="alert" style={{ marginBottom: 16 }}>{err}</div>}
+        <button type="submit" disabled={busy} className="button button-primary button-full" style={{ minHeight: 46 }}>
+          {busy ? "Signing in…" : "Sign in"} <span aria-hidden="true">→</span>
         </button>
+        <p className="footer-note">Small steps. Stronger streaks.</p>
       </form>
     </main>
   );
