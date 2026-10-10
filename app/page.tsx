@@ -3,29 +3,44 @@ import { useEffect, useState } from "react";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { levelFor } from "@/lib/levels";
 import { supabase } from "@/lib/supabase-browser";
-
-type Section = { id: string; name: string; batch_id: string | null };
+import { isPaused, type Pause, type SectionInfo } from "@/lib/pauses";
 
 export default function Home() {
   const { rows, loading, error } = useLeaderboard();
-  const [sections, setSections] = useState<Section[]>([]);
+  const [sections, setSections] = useState<SectionInfo[]>([]);
+  const [pauses, setPauses] = useState<Pause[]>([]);
   const [activeSection, setActiveSection] = useState<string>("all");
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("sections")
-        .select("id,name,batch_id")
-        .order("name");
-      setSections((data as Section[]) ?? []);
+      const [s, p] = await Promise.all([
+        supabase.from("sections").select("id,name,batch_id").order("name"),
+        supabase.from("pauses").select("*").is("ended_at", null),
+      ]);
+      setSections((s.data as SectionInfo[]) ?? []);
+      setPauses((p.data as Pause[]) ?? []);
     })();
+
+    const ch = supabase
+      .channel("pauses-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pauses" }, async () => {
+        const { data } = await supabase.from("pauses").select("*").is("ended_at", null);
+        setPauses((data as Pause[]) ?? []);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   if (loading) return <main className="page-container loading-state">Loading leaderboard…</main>;
 
-  const filtered = activeSection === "all"
+  const sectionFiltered = activeSection === "all"
     ? rows
     : rows.filter(r => r.section_id === activeSection);
+
+  // Split into active and paused
+  const active = sectionFiltered.filter(r => !isPaused(r, pauses, sections));
+  const paused = sectionFiltered.filter(r => isPaused(r, pauses, sections));
 
   const activeSectionName = sections.find(s => s.id === activeSection)?.name;
 
@@ -37,7 +52,7 @@ export default function Home() {
           <h1 className="page-title">🏆 Leaderboard</h1>
           <p className="page-subtitle">Keep the momentum going — every tap counts.</p>
         </div>
-        <span className="badge badge-neutral">{filtered.length} students</span>
+        <span className="badge badge-neutral">{active.length} students</span>
       </div>
 
       {error && (
@@ -71,7 +86,7 @@ export default function Home() {
           </div>
         </div>
         <hr className="divider" />
-        {filtered.map((r, i) => {
+        {active.map((r, i) => {
           const lvl = levelFor(r.streak);
           const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`;
           const displayName = r.display_name || r.name;
@@ -96,9 +111,17 @@ export default function Home() {
             </div>
           );
         })}
-        {filtered.length === 0 && !error && (
+        {active.length === 0 && !error && (
           <div className="empty-state">
-            {activeSection === "all" ? "No students yet." : "No students in this section yet."}
+            {activeSection === "all" ? "No active students yet." : "No active students in this section yet."}
+          </div>
+        )}
+        {paused.length > 0 && (
+          <div style={{ padding: "12px 22px 18px", borderTop: "1px solid var(--line)" }}>
+            <span className="muted small">
+              🌴 {paused.length} {paused.length === 1 ? "student" : "students"} paused
+              {" — their streaks are frozen until the pause ends."}
+            </span>
           </div>
         )}
       </section>

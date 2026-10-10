@@ -69,13 +69,17 @@ export default function StudentsTab() {
         try { text = (await error.context.json()).error ?? text; } catch { /* keep generic */ }
       }
       setMsg({ text, error: true });
-    } else {
-      setMsg({
-        text: data?.already_logged
-          ? `${p.name} already tapped in today (streak ${data.streak}).`
-          : `Simulated tap for ${p.name} (streak ${data?.streak ?? "?"}).`,
-      });
-    }
+    } else if (data?.paused) {
+  setMsg({
+    text: `${p.name} is paused — tap logged but streak unchanged (still ${data.streak}).`,
+  });
+} else {
+  setMsg({
+    text: data?.already_logged
+      ? `${p.name} already tapped in today (streak ${data.streak}).`
+      : `Simulated tap for ${p.name} (streak ${data?.streak ?? "?"}).`,
+  });
+}
     reload();
   }
 

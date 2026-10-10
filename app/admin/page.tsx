@@ -5,8 +5,9 @@ import type { Profile } from "@/lib/types";
 import StudentsTab from "./_components/StudentsTab";
 import BatchesTab from "./_components/BatchesTab";
 import SectionsTab from "./_components/SectionsTab";
+import PausesTab from "./_components/PausesTab";
 
-type Tab = "students" | "batches" | "sections";
+type Tab = "students" | "batches" | "sections" | "pauses";
 
 export default function Admin() {
   const [me, setMe] = useState<Profile | null>(null);
@@ -46,11 +47,13 @@ export default function Admin() {
         <TabButton active={tab === "students"} onClick={() => setTab("students")}>Students</TabButton>
         <TabButton active={tab === "batches"} onClick={() => setTab("batches")}>Batches</TabButton>
         <TabButton active={tab === "sections"} onClick={() => setTab("sections")}>Sections</TabButton>
+        <TabButton active={tab === "pauses"} onClick={() => setTab("pauses")}>Pauses</TabButton>
       </div>
 
       {tab === "students" && <StudentsTab />}
  {tab === "batches" && <BatchesTab />}
    {tab === "sections" && <SectionsTab />}
+    {tab === "pauses" && <PausesTab />}
     </main>
   );
 }

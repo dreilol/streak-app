@@ -31,7 +31,7 @@ export default function LevelProgress({ streak }: { streak: number }) {
         {next ? (
           <>
             <span className="muted small">
-              <strong style={{ color: "var(--text)" }}>{streak}</strong> / {next.min} days to {next.icon} {next.name}
+<strong style={{ color: "var(--text)" }}>{streak}</strong> / {next.min} {next.min === 1 ? "day" : "days"} to {next.icon} {next.name}
             </span>
             <span className="small" style={{ color: "var(--accent)", fontWeight: 700 }}>
               {remaining} more {remaining === 1 ? "day" : "days"} to go
