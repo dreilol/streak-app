@@ -8,6 +8,14 @@ export interface Profile {
   current_streak: number;
   longest_streak: number;
   last_log_date: string | null;
+
+  // Added in phase 1
+  username: string | null;
+  full_name: string | null;
+  display_name: string | null;
+  section_id: string | null;
+  restore_tokens: number;
+  last_token_reset: string | null;
 }
 
 export interface LogRow {

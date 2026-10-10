@@ -11,7 +11,10 @@ export default function Login() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setErr(null);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+   const username = email.trim().toLowerCase();
+const fullEmail = username.includes("@") ? username : `${username}@streak.local`;
+const { error } = await supabase.auth.signInWithPassword({
+  email: fullEmail, password });
     if (error) { setBusy(false); return setErr(error.message); }
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload refreshes auth state in the nav
     window.location.assign("/");
@@ -26,9 +29,11 @@ export default function Login() {
       </div>
       <form onSubmit={submit} className="panel login-card">
         <div className="field-group">
-          <label className="field-label" htmlFor="email">Email address</label>
-          <input id="email" className="field" type="email" required autoComplete="email"
-            placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+        <label className="field-label" htmlFor="username">
+  Username</label>
+<input id="username" className="field" type="text"
+  required autoComplete="username"
+  placeholder="e.g. delacruz.juan" value={email} onChange={e => setEmail(e.target.value)} />
         </div>
         <div className="field-group">
           <label className="field-label" htmlFor="password">Password</label>

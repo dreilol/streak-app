@@ -17,7 +17,7 @@ export function useLeaderboard() {
     async function load() {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id,name,role,rfid_tag,current_streak,longest_streak,last_log_date")
+    .select("id,name,role,rfid_tag,current_streak,longest_streak,last_log_date,section_id,display_name")
         .eq("role", "student");
       if (!active) return;
       if (error) {
